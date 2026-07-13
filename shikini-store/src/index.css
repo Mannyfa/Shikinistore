@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Optional: Custom scrollbar styling to keep it premium */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #111111; 
+}
+::-webkit-scrollbar-thumb {
+  background: #C7A14A; 
+}
