@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useCartStore } from '../../store/cartStore';
+import { useAuth } from '../../hooks/useAuth'; // <-- Import your Auth hook
 
 export default function Header() {
   const openCart = useCartStore((state) => state.openCart);
   const getCartCount = useCartStore((state) => state.getCartCount);
   const [isScrolled, setIsScrolled] = useState(false);
+  
+  // <-- Get the current user state from Firebase
+  const { currentUser } = useAuth(); 
 
   // Adds a beautiful frosted glass effect to the header when the user scrolls down
   useEffect(() => {
@@ -35,7 +39,19 @@ export default function Header() {
 
       {/* Right Navigation */}
       <nav className="flex items-center gap-6 md:gap-8 text-[10px] uppercase tracking-widest text-zinc-500">
-        <Link to="/auth" className="hover:text-luxury-black transition-colors hidden sm:block">Sign In</Link>
+        
+        {/* --- DYNAMIC AUTH LINK --- */}
+        {currentUser ? (
+          <Link to="/admin" className="hover:text-luxury-black transition-colors hidden sm:block">
+            Account
+          </Link>
+        ) : (
+          <Link to="/auth" className="hover:text-luxury-black transition-colors hidden sm:block">
+            Sign In
+          </Link>
+        )}
+        {/* ------------------------- */}
+
         <button className="hover:text-luxury-black transition-colors hidden sm:block">Search</button>
         
         {/* The Dynamic Cart Button */}

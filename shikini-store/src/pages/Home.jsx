@@ -2,19 +2,22 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 
-// ==========================================
-// 📸 HOW TO ADD YOUR FOUNDER IMAGE:
-// 1. Create an 'assets' folder inside your 'src' folder (if you don't have one).
-// 2. Paste your image inside 'src/assets/' and name it 'founder.jpg'.
-// 3. Uncomment the import line below:
-// import founderImg from '../assets/founder.jpg';
-// ==========================================
+// 1. Your active local founder image
+import founderImg from '../assets/founder.jpg';
+
+// 2. Once you have a hero image, put it in the assets folder and uncomment this:
+// import heroImg from '../assets/hero-bg.jpg';
 
 export default function Home() {
-  // Temporary placeholder until you uncomment the import above!
+  // Uses your local founder image
   const currentFounderImg = typeof founderImg !== 'undefined' 
     ? founderImg 
     : "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80";
+
+  // Uses a placeholder until you uncomment the heroImg import above
+  const currentHeroImg = typeof heroImg !== 'undefined'
+    ? heroImg
+    : "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80";
 
   // Animation Variants
   const fadeUp = {
@@ -26,19 +29,30 @@ export default function Home() {
   return (
     <div className="bg-luxury-white w-full">
       
-      {/* 1. HERO SECTION */}
-      <section className="relative h-screen flex flex-col items-center justify-center text-center px-4 overflow-hidden">
+      {/* 1. HERO SECTION (With Background Image & Overlay) */}
+      <section 
+        className="relative h-screen flex flex-col items-center justify-center text-center px-4 overflow-hidden bg-zinc-100"
+        style={{
+          backgroundImage: `url(${currentHeroImg})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat'
+        }}
+      >
+        {/* Frosted Glass / Light Overlay to ensure black text is perfectly readable */}
+        <div className="absolute inset-0 bg-white/40 backdrop-blur-[2px]"></div>
+
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 1.5, ease: "easeOut" }}
-          className="z-10"
+          className="z-10 relative"
         >
-          <p className="text-[10px] uppercase tracking-[0.3em] text-zinc-500 mb-6">Welcome to</p>
+          <p className="text-[10px] uppercase tracking-[0.3em] text-zinc-600 mb-6 font-semibold">Welcome to</p>
           <h1 className="text-6xl md:text-8xl lg:text-9xl font-editorial text-luxury-black tracking-tight mb-8">
             SHIKINI
           </h1>
-          <p className="text-sm md:text-base font-serif italic text-zinc-600 max-w-lg mx-auto mb-12">
+          <p className="text-sm md:text-base font-serif italic text-zinc-700 max-w-lg mx-auto mb-12">
             A curated archive of pre-owned luxury, rare timepieces, and definitive designer garments.
           </p>
           <Link 
@@ -48,10 +62,6 @@ export default function Home() {
             Enter the Vault
           </Link>
         </motion.div>
-
-        {/* Optional Background Decorative Elements */}
-        <div className="absolute top-1/4 left-10 w-64 h-64 bg-zinc-50 rounded-full blur-3xl opacity-50 -z-10" />
-        <div className="absolute bottom-1/4 right-10 w-96 h-96 bg-zinc-100 rounded-full blur-3xl opacity-50 -z-10" />
       </section>
 
       {/* 2. BRAND PHILOSOPHY */}
