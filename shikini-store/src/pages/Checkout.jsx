@@ -1,142 +1,263 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { useCartStore } from '../hooks/useCartStore';
+import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { Link, useNavigate } from 'react-router-dom';
+import { useCartStore } from '../store/cartStore';
 
 export default function Checkout() {
-  const { cart } = useCartStore();
+  const navigate = useNavigate();
+  const { items, getCartTotal, clearCart } = useCartStore();
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [orderSubmitted, setOrderSubmitted] = useState(false);
 
-  const subtotal = cart.reduce((total, item) => {
-    const priceNumber = parseFloat(item.price.replace(/[^0-9.-]+/g, ""));
-    return total + (priceNumber * item.quantity);
-  }, 0);
+  // Form State
+  const [formData, setFormData] = useState({
+    email: '',
+    firstName: '',
+    lastName: '',
+    address: '',
+    city: '',
+    state: '',
+    phone: ''
+  });
 
-  const shipping = 0; // Complimentary luxury shipping
+  // Analytics
+  const subtotal = getCartTotal();
+  const shipping = subtotal > 0 ? 15000 : 0; // Flat ₦15,000 luxury shipping rate
   const total = subtotal + shipping;
 
-  return (
-    <div className="min-h-screen bg-luxury-white flex flex-col md:flex-row">
-      
-      {/* Left Column: Checkout Form */}
-      <div className="w-full md:w-3/5 p-8 md:p-16 lg:px-32 xl:px-48 md:py-20 flex flex-col">
-        {/* Secure Header */}
-        <div className="mb-12">
-          <Link to="/" className="text-3xl font-editorial font-bold tracking-widest text-luxury-black">
-            SHIKINI
-          </Link>
-          <p className="text-[10px] uppercase tracking-widest text-gray-500 mt-2 flex items-center gap-2">
-            <span className="w-2 h-2 bg-green-800 rounded-full"></span>
-            Secure Encrypted Checkout
-          </p>
-        </div>
+  // We save the final total in state so we can safely clear the cart 
+  // without the success screen suddenly showing ₦0
+  const [finalTotal, setFinalTotal] = useState(0);
 
-        {/* Breadcrumb Steps */}
-        <div className="flex gap-4 text-xs uppercase tracking-widest mb-12">
-          <span className="text-luxury-black font-bold">Information</span>
-          <span className="text-gray-400">/</span>
-          <span className="text-gray-400">Shipping</span>
-          <span className="text-gray-400">/</span>
-          <span className="text-gray-400">Payment</span>
-        </div>
+  // Redirect if cart is empty and order isn't submitted
+  useEffect(() => {
+    if (items.length === 0 && !orderSubmitted) {
+      navigate('/archives');
+    }
+  }, [items, navigate, orderSubmitted]);
 
-        <form className="space-y-12 flex-1" onSubmit={(e) => e.preventDefault()}>
-          
-          {/* Contact Section */}
-          <section>
-            <h2 className="text-lg font-editorial mb-6 text-luxury-black">Contact Information</h2>
-            <div className="relative">
-              <input 
-                type="email" 
-                placeholder="Email Address"
-                className="w-full bg-transparent border-b border-gray-300 py-3 text-sm text-luxury-black focus:outline-none focus:border-luxury-black transition-colors placeholder:text-[10px] placeholder:uppercase placeholder:tracking-widest placeholder:text-gray-400"
-              />
+  const handleInputChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleCheckoutSubmit = (e) => {
+    e.preventDefault();
+    setIsProcessing(true);
+    
+    // Lock in the total price before clearing the cart
+    setFinalTotal(total);
+
+    // Simulate a brief processing delay to generate the invoice
+    setTimeout(() => {
+      setIsProcessing(false);
+      setOrderSubmitted(true);
+      clearCart();
+    }, 1500);
+  };
+
+  // Animation variants
+  const fadeUp = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] } }
+  };
+
+  // --- BANK TRANSFER / SUCCESS STATE ---
+  if (orderSubmitted) {
+    return (
+      <div className="min-h-screen bg-luxury-white flex flex-col items-center justify-center p-4 py-24">
+        <motion.div 
+          initial="hidden" animate="visible" variants={fadeUp}
+          className="max-w-2xl w-full"
+        >
+          <div className="text-center mb-12">
+            <h1 className="text-4xl font-editorial text-luxury-black mb-4">Complete Your Acquisition</h1>
+            <p className="text-sm font-serif text-zinc-600 italic">
+              Your order has been recorded. Please complete the transfer to secure your pieces.
+            </p>
+          </div>
+
+          <div className="bg-zinc-50 border border-zinc-200 p-8 md:p-12 shadow-sm">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-zinc-200 pb-8 mb-8">
+              <div>
+                <p className="text-[10px] uppercase tracking-widest text-zinc-400 mb-1">Total Amount Due</p>
+                <p className="text-3xl font-editorial text-luxury-black">₦{finalTotal.toLocaleString()}</p>
+              </div>
+              <div className="mt-4 md:mt-0 text-left md:text-right">
+                <p className="text-[10px] uppercase tracking-widest text-zinc-400 mb-1">Order Status</p>
+                <p className="text-xs font-bold text-luxury-gold uppercase tracking-widest">Awaiting Payment</p>
+              </div>
             </div>
-          </section>
 
-          {/* Shipping Section */}
-          <section>
-            <h2 className="text-lg font-editorial mb-6 text-luxury-black">Shipping Address</h2>
-            <div className="grid grid-cols-2 gap-6">
-              <div className="col-span-1 relative">
-                <input type="text" placeholder="First Name" className="w-full bg-transparent border-b border-gray-300 py-3 text-sm text-luxury-black focus:outline-none focus:border-luxury-black transition-colors placeholder:text-[10px] placeholder:uppercase placeholder:tracking-widest placeholder:text-gray-400" />
+            <div className="space-y-6">
+              <div>
+                <p className="text-[10px] uppercase tracking-widest text-zinc-400 mb-2">Bank Name</p>
+                <p className="text-lg font-medium text-luxury-black tracking-wide">Fidelity Bank</p>
               </div>
-              <div className="col-span-1 relative">
-                <input type="text" placeholder="Last Name" className="w-full bg-transparent border-b border-gray-300 py-3 text-sm text-luxury-black focus:outline-none focus:border-luxury-black transition-colors placeholder:text-[10px] placeholder:uppercase placeholder:tracking-widest placeholder:text-gray-400" />
+              
+              <div>
+                <p className="text-[10px] uppercase tracking-widest text-zinc-400 mb-2">Account Number</p>
+                <p className="text-2xl font-mono text-luxury-black tracking-widest bg-zinc-200 inline-block px-4 py-2">6237839296</p>
               </div>
-              <div className="col-span-2 relative">
-                <input type="text" placeholder="Address" className="w-full bg-transparent border-b border-gray-300 py-3 text-sm text-luxury-black focus:outline-none focus:border-luxury-black transition-colors placeholder:text-[10px] placeholder:uppercase placeholder:tracking-widest placeholder:text-gray-400" />
-              </div>
-              <div className="col-span-1 relative">
-                <input type="text" placeholder="City" className="w-full bg-transparent border-b border-gray-300 py-3 text-sm text-luxury-black focus:outline-none focus:border-luxury-black transition-colors placeholder:text-[10px] placeholder:uppercase placeholder:tracking-widest placeholder:text-gray-400" />
-              </div>
-              <div className="col-span-1 relative">
-                <input type="text" placeholder="Postal Code" className="w-full bg-transparent border-b border-gray-300 py-3 text-sm text-luxury-black focus:outline-none focus:border-luxury-black transition-colors placeholder:text-[10px] placeholder:uppercase placeholder:tracking-widest placeholder:text-gray-400" />
+
+              <div>
+                <p className="text-[10px] uppercase tracking-widest text-zinc-400 mb-2">Account Name</p>
+                <p className="text-lg font-medium text-luxury-black uppercase tracking-widest">ADEYEMI FUNMILAYO</p>
               </div>
             </div>
-          </section>
 
-          {/* Actions */}
-          <div className="pt-8 flex justify-between items-center border-t border-gray-200">
-            <Link to="/archives" className="text-[10px] uppercase tracking-widest text-gray-500 hover:text-luxury-black transition-colors">
+            <div className="mt-12 bg-zinc-900 text-white p-6">
+              <p className="text-xs uppercase tracking-widest mb-2 font-bold">Next Steps:</p>
+              <ol className="list-decimal list-inside text-sm font-serif text-zinc-300 space-y-2">
+                <li>Transfer the exact total amount to the account provided above.</li>
+                <li>Use your name (<span className="font-sans font-bold">{formData.firstName} {formData.lastName}</span>) in the transfer description.</li>
+                <li>Send your proof of payment via WhatsApp or Email to confirm your order.</li>
+              </ol>
+            </div>
+          </div>
+
+          <div className="mt-12 text-center">
+            <Link to="/archives" className="text-xs uppercase tracking-widest border-b border-luxury-black pb-1 hover:text-zinc-500 hover:border-zinc-500 transition-colors">
               Return to Archives
             </Link>
-            <button className="bg-luxury-black text-white px-10 py-5 text-xs uppercase tracking-widest hover:bg-luxury-gold transition-colors duration-300 shadow-xl">
-              Continue to Shipping
-            </button>
           </div>
-        </form>
+        </motion.div>
       </div>
+    );
+  }
 
-      {/* Right Column: Order Summary (Sticky) */}
-      <div className="w-full md:w-2/5 bg-gray-50 border-l border-gray-200 p-8 md:p-16 md:py-20 flex flex-col">
-        <h2 className="text-lg font-editorial mb-8 text-luxury-black">Order Summary</h2>
+  // --- CHECKOUT FORM STATE ---
+  return (
+    <div className="min-h-screen bg-luxury-white pt-24 md:pt-32 pb-24">
+      <div className="max-w-[1400px] mx-auto px-4 md:px-8 lg:px-12">
         
-        {/* Items */}
-        <div className="flex-1 overflow-y-auto mb-8 pr-4">
-          {cart.length === 0 ? (
-            <p className="text-xs uppercase tracking-widest text-gray-400">Your cart is empty.</p>
-          ) : (
-            <div className="space-y-6">
-              {cart.map((item) => (
-                <div key={item.id} className="flex gap-4 items-center">
-                  <div className="relative h-20 w-16 bg-gray-200 flex-shrink-0">
-                    <img src={item.image} alt={item.name} className="h-full w-full object-cover" />
-                    <span className="absolute -top-2 -right-2 bg-luxury-black text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full">
-                      {item.quantity}
-                    </span>
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="text-[10px] font-bold uppercase tracking-widest text-gray-500">{item.designer}</h4>
-                    <h3 className="text-sm font-serif italic text-luxury-black">{item.name}</h3>
-                  </div>
-                  <span className="text-sm tracking-widest">{item.price}</span>
-                </div>
-              ))}
-            </div>
-          )}
+        <div className="mb-12">
+          <Link to="/archives" className="text-[10px] uppercase tracking-widest text-zinc-400 hover:text-luxury-black transition-colors">
+            ← Return to Vault
+          </Link>
         </div>
 
-        {/* Totals */}
-        <div className="border-t border-gray-200 pt-6 space-y-4">
-          <div className="flex justify-between items-center text-sm text-gray-600 tracking-widest">
-            <span>Subtotal</span>
-            <span>${subtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 lg:gap-24">
+          
+          {/* Left Column: Shipping & Contact Form */}
+          <div className="lg:col-span-7">
+            <motion.div initial="hidden" animate="visible" variants={fadeUp}>
+              <h1 className="text-3xl font-editorial text-luxury-black mb-8">Secure Checkout</h1>
+              
+              <form onSubmit={handleCheckoutSubmit} className="space-y-10">
+                
+                {/* Contact Section */}
+                <section>
+                  <h2 className="text-xs uppercase tracking-widest text-zinc-500 mb-6 border-b border-zinc-200 pb-2">Contact Information</h2>
+                  <div className="relative group">
+                    <input type="email" name="email" required value={formData.email} onChange={handleInputChange} placeholder=" "
+                      className="w-full bg-transparent border-b border-zinc-300 py-3 text-sm focus:outline-none focus:border-luxury-black transition-colors peer" />
+                    <label className="absolute left-0 top-3 text-[10px] uppercase tracking-widest text-zinc-400 pointer-events-none transition-all peer-focus:-top-4 peer-focus:text-luxury-black peer-valid:-top-4">Email Address</label>
+                  </div>
+                </section>
+
+                {/* Shipping Section */}
+                <section>
+                  <h2 className="text-xs uppercase tracking-widest text-zinc-500 mb-6 border-b border-zinc-200 pb-2">Shipping Details</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div className="relative group">
+                      <input type="text" name="firstName" required value={formData.firstName} onChange={handleInputChange} placeholder=" "
+                        className="w-full bg-transparent border-b border-zinc-300 py-3 text-sm focus:outline-none focus:border-luxury-black transition-colors peer" />
+                      <label className="absolute left-0 top-3 text-[10px] uppercase tracking-widest text-zinc-400 pointer-events-none transition-all peer-focus:-top-4 peer-focus:text-luxury-black peer-valid:-top-4">First Name</label>
+                    </div>
+                    <div className="relative group">
+                      <input type="text" name="lastName" required value={formData.lastName} onChange={handleInputChange} placeholder=" "
+                        className="w-full bg-transparent border-b border-zinc-300 py-3 text-sm focus:outline-none focus:border-luxury-black transition-colors peer" />
+                      <label className="absolute left-0 top-3 text-[10px] uppercase tracking-widest text-zinc-400 pointer-events-none transition-all peer-focus:-top-4 peer-focus:text-luxury-black peer-valid:-top-4">Last Name</label>
+                    </div>
+                  </div>
+
+                  <div className="relative group mb-6">
+                    <input type="text" name="address" required value={formData.address} onChange={handleInputChange} placeholder=" "
+                      className="w-full bg-transparent border-b border-zinc-300 py-3 text-sm focus:outline-none focus:border-luxury-black transition-colors peer" />
+                    <label className="absolute left-0 top-3 text-[10px] uppercase tracking-widest text-zinc-400 pointer-events-none transition-all peer-focus:-top-4 peer-focus:text-luxury-black peer-valid:-top-4">Delivery Address</label>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div className="relative group">
+                      <input type="text" name="city" required value={formData.city} onChange={handleInputChange} placeholder=" "
+                        className="w-full bg-transparent border-b border-zinc-300 py-3 text-sm focus:outline-none focus:border-luxury-black transition-colors peer" />
+                      <label className="absolute left-0 top-3 text-[10px] uppercase tracking-widest text-zinc-400 pointer-events-none transition-all peer-focus:-top-4 peer-focus:text-luxury-black peer-valid:-top-4">City</label>
+                    </div>
+                    <div className="relative group">
+                      <input type="text" name="state" required value={formData.state} onChange={handleInputChange} placeholder=" "
+                        className="w-full bg-transparent border-b border-zinc-300 py-3 text-sm focus:outline-none focus:border-luxury-black transition-colors peer" />
+                      <label className="absolute left-0 top-3 text-[10px] uppercase tracking-widest text-zinc-400 pointer-events-none transition-all peer-focus:-top-4 peer-focus:text-luxury-black peer-valid:-top-4">State / Province</label>
+                    </div>
+                  </div>
+
+                  <div className="relative group">
+                    <input type="tel" name="phone" required value={formData.phone} onChange={handleInputChange} placeholder=" "
+                      className="w-full bg-transparent border-b border-zinc-300 py-3 text-sm focus:outline-none focus:border-luxury-black transition-colors peer" />
+                    <label className="absolute left-0 top-3 text-[10px] uppercase tracking-widest text-zinc-400 pointer-events-none transition-all peer-focus:-top-4 peer-focus:text-luxury-black peer-valid:-top-4">Phone Number</label>
+                  </div>
+                </section>
+
+                <button 
+                  type="submit" 
+                  disabled={isProcessing}
+                  className="w-full py-5 mt-8 bg-luxury-black text-white text-xs uppercase tracking-widest hover:bg-luxury-gold transition-colors disabled:bg-zinc-300 disabled:cursor-not-allowed flex justify-center items-center"
+                >
+                  {isProcessing ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    `Place Order & View Payment Details`
+                  )}
+                </button>
+              </form>
+            </motion.div>
           </div>
-          <div className="flex justify-between items-center text-sm text-gray-600 tracking-widest">
-            <span>Shipping</span>
-            <span className="uppercase text-[10px] text-luxury-gold font-bold">Complimentary</span>
+
+          {/* Right Column: Order Summary (Sticky) */}
+          <div className="lg:col-span-5">
+            <motion.div 
+              initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, delay: 0.2 }}
+              className="bg-zinc-50 p-8 md:p-10 sticky top-32 border border-zinc-200"
+            >
+              <h2 className="text-xl font-editorial text-luxury-black mb-8">Order Summary</h2>
+              
+              <div className="space-y-6 mb-8 max-h-[40vh] overflow-y-auto pr-2">
+                {items.map((item) => (
+                  <div key={item.id} className="flex gap-4">
+                    <div className="w-16 h-20 bg-zinc-200 flex-shrink-0 relative">
+                      {item.imageUrl && <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />}
+                      <span className="absolute -top-2 -right-2 bg-luxury-black text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full">
+                        {item.quantity}
+                      </span>
+                    </div>
+                    <div className="flex flex-col justify-center">
+                      <p className="text-xs font-medium text-luxury-black">{item.name}</p>
+                      <p className="text-[10px] text-zinc-500 uppercase tracking-widest mt-1">{item.designer || item.category}</p>
+                      <p className="text-xs mt-2">₦{(item.price * item.quantity).toLocaleString()}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="space-y-4 border-t border-zinc-200 pt-6 text-sm">
+                <div className="flex justify-between text-zinc-600">
+                  <span>Subtotal</span>
+                  <span>₦{subtotal.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-zinc-600">
+                  <span>Insured Shipping</span>
+                  <span>₦{shipping.toLocaleString()}</span>
+                </div>
+              </div>
+
+              <div className="flex justify-between items-end border-t border-zinc-200 pt-6 mt-6">
+                <span className="text-xs uppercase tracking-widest text-luxury-black">Total to Transfer</span>
+                <span className="text-2xl font-editorial text-luxury-black">₦{total.toLocaleString()}</span>
+              </div>
+            </motion.div>
           </div>
-          <div className="border-t border-gray-200 pt-4 flex justify-between items-end">
-            <span className="text-xs uppercase tracking-widest text-luxury-black">Total</span>
-            <div className="text-right">
-              <span className="text-[10px] text-gray-400 mr-2 uppercase">USD</span>
-              <span className="text-2xl tracking-widest text-luxury-black font-medium">
-                ${total.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-              </span>
-            </div>
-          </div>
+
         </div>
       </div>
-
     </div>
   );
 }
