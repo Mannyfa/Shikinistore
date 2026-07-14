@@ -1,13 +1,20 @@
 const { initializeApp, cert } = require('firebase-admin/app');
 const { getFirestore } = require('firebase-admin/firestore');
-const path = require('path');
+require('dotenv').config(); // Ensure we can read environment variables locally
 
 try {
-  // Resolve the absolute path to your service account key file
-  const serviceAccountPath = path.resolve(__dirname, '../../firebase-key.json');
-  const serviceAccount = require(serviceAccountPath);
+  let serviceAccount;
 
-  // Initialize the Firebase Admin SDK using the new modular functions
+  // If we are in production (Render), read the key from the secure environment variable
+  if (process.env.NODE_ENV === 'production') {
+    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+  } else {
+    // If we are testing locally, read from the local file
+    const path = require('path');
+    const serviceAccountPath = path.resolve(__dirname, '../../firebase-key.json');
+    serviceAccount = require(serviceAccountPath);
+  }
+
   initializeApp({
     credential: cert(serviceAccount)
   });
@@ -18,7 +25,5 @@ try {
   process.exit(1);
 }
 
-// Export the Firestore database instance so our controllers can use it
 const db = getFirestore();
-
 module.exports = { db };
