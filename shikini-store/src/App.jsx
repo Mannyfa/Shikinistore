@@ -6,7 +6,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import ProductGrid from './features/catalog/ProductGrid';
 import ProductDetail from './pages/ProductDetail';
 import Checkout from './pages/Checkout';
-import AuthPage from './pages/AuthPage';
+import AuthPage from './pages/Auth';
 import Profile from './pages/Profile'; // <-- 1. Import the new Profile page
 import CartDrawer from './features/cart/CartDrawer';
 
