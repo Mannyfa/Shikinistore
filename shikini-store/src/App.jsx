@@ -13,7 +13,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import ProductGrid from './features/catalog/ProductGrid';
 import ProductDetail from './pages/ProductDetail';
 import Checkout from './pages/Checkout';
-import AuthPage from './pages/Auth';
+import Auth from './pages/Auth';
 import Profile from './pages/Profile';
 
 // --- THE CINEMATIC WRAPPER ---
@@ -59,7 +59,7 @@ const AppContent = () => {
           
           <Route path="/product/:id" element={<AnimatedPage><ProductDetail /></AnimatedPage>} />
           <Route path="/checkout" element={<AnimatedPage><Checkout /></AnimatedPage>} />
-          <Route path="/auth" element={<AnimatedPage><AuthPage /></AnimatedPage>} />
+          <Route path="/auth" element={<AnimatedPage><Auth /></AnimatedPage>} />
           <Route path="/profile" element={<AnimatedPage><Profile /></AnimatedPage>} />
           
           {/* Admin Terminal */}

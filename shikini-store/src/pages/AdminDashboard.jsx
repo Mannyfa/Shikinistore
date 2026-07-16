@@ -7,7 +7,6 @@ import { useProducts } from '../hooks/useProducts';
 import { useOrders } from '../hooks/useOrders';
 import { API_BASE_URL } from '../config/api';
 
-// --- SIZE GENERATION LOGIC ---
 const getSizesForCategory = (category) => {
   if (!category) return [];
   if (category === 'Shirts') return ['S', 'M', 'L', 'XL'];
@@ -24,7 +23,6 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('inventory');
   
-  // Modal & Form State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -33,7 +31,6 @@ export default function AdminDashboard() {
   const emptyForm = { name: '', designer: '', category: '', price: '', stock: '', imageUrl: '', description: '', sizes: [] };
   const [formData, setFormData] = useState(emptyForm);
 
-  // Vault Analytics
   const totalItems = products.length;
   const vaultValue = products.reduce((acc, curr) => acc + (curr.price * curr.stock), 0);
   const outOfStock = products.filter(p => p.stock === 0).length;
@@ -157,8 +154,6 @@ export default function AdminDashboard() {
   const availableSizesForCategory = getSizesForCategory(formData.category);
 
   const fadeUp = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.6 } } };
-  const modalOverlay = { hidden: { opacity: 0 }, visible: { opacity: 1 }, exit: { opacity: 0 } };
-  const modalContent = { hidden: { opacity: 0, scale: 0.95, y: 20 }, visible: { opacity: 1, scale: 1, y: 0 }, exit: { opacity: 0, scale: 0.95, y: 20 } };
 
   return (
     <div className="min-h-screen flex bg-luxury-white relative">
@@ -318,125 +313,128 @@ export default function AdminDashboard() {
         )}
       </div>
 
-      {/* --- RESTRUCTURED MODAL --- */}
+      {/* --- BULLETPROOF SCROLLABLE MODAL --- */}
       <AnimatePresence>
         {isModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
-            
-            {/* Dark Overlay Background */}
-            <motion.div 
-              variants={modalOverlay} initial="hidden" animate="visible" exit="exit" 
-              onClick={() => setIsModalOpen(false)} 
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm" 
-            />
-            
-            {/* Modal Card - Set to Flex Column so the inside can scroll */}
-            <motion.div 
-              variants={modalContent} initial="hidden" animate="visible" exit="exit" 
-              className="relative w-full max-w-2xl bg-luxury-white shadow-2xl flex flex-col max-h-[90vh]"
-            >
+          <div className="fixed inset-0 z-[100] overflow-y-auto">
+            <div className="flex min-h-screen items-center justify-center p-4 py-12 text-center sm:p-0">
               
-              {/* Modal Header - Pinned to the top */}
-              <div className="flex justify-between items-center p-6 md:p-8 border-b border-zinc-200 flex-shrink-0">
-                <h3 className="text-2xl font-editorial text-luxury-black">
-                  {editingId ? 'Edit Archived Piece' : 'Archive New Piece'}
-                </h3>
-                <button type="button" onClick={() => setIsModalOpen(false)} className="text-[10px] uppercase tracking-widest text-zinc-400 hover:text-luxury-black transition-colors">
-                  Close [X]
-                </button>
-              </div>
-
-              {/* Modal Body - Scrollable Form Area */}
-              <div className="p-6 md:p-8 overflow-y-auto">
-                <form onSubmit={handleSubmitPiece} className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="relative group">
-                      <input type="text" name="name" required value={formData.name} onChange={handleInputChange} placeholder=" " className="w-full bg-transparent border-b border-zinc-300 py-3 text-sm focus:outline-none focus:border-luxury-black transition-colors peer" />
-                      <label className="absolute left-0 top-3 text-[10px] uppercase tracking-widest text-zinc-400 pointer-events-none transition-all peer-focus:-top-4 peer-focus:text-luxury-black peer-valid:-top-4">Piece Name</label>
-                    </div>
-                    <div className="relative group">
-                      <input type="text" name="designer" value={formData.designer} onChange={handleInputChange} placeholder=" " className="w-full bg-transparent border-b border-zinc-300 py-3 text-sm focus:outline-none focus:border-luxury-black transition-colors peer" />
-                      <label className="absolute left-0 top-3 text-[10px] uppercase tracking-widest text-zinc-400 pointer-events-none transition-all peer-focus:-top-4 peer-focus:text-luxury-black peer-valid:-top-4">Designer / Brand</label>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="relative group">
-                      <select 
-                        name="category" 
-                        required 
-                        value={formData.category} 
-                        onChange={handleInputChange} 
-                        className="w-full bg-transparent border-b border-zinc-300 py-3 text-sm focus:outline-none focus:border-luxury-black transition-colors appearance-none cursor-pointer"
-                      >
-                        <option value="" disabled>Select Category</option>
-                        <option value="Shirts">Shirts</option>
-                        <option value="Trousers">Trousers</option>
-                        <option value="Sneakers">Sneakers</option>
-                        <option value="Sandals">Sandals</option>
-                        <option value="Slippers">Slippers</option>
-                        <option value="Eye Wear">Eye Wear</option>
-                        <option value="Wrist Watches">Wrist Watches</option>
-                        <option value="Purses">Purses</option>
-                        <option value="Bags">Bags</option>
-                      </select>
-                      <label className="absolute left-0 -top-4 text-[10px] uppercase tracking-widest text-luxury-black pointer-events-none transition-all">Category</label>
-                      <div className="absolute right-0 top-3 pointer-events-none text-zinc-400 text-xs">▼</div>
-                    </div>
-
-                    <div className="relative group">
-                      <input type="number" name="price" required min="0" value={formData.price} onChange={handleInputChange} placeholder=" " className="w-full bg-transparent border-b border-zinc-300 py-3 text-sm focus:outline-none focus:border-luxury-black transition-colors peer" />
-                      <label className="absolute left-0 top-3 text-[10px] uppercase tracking-widest text-zinc-400 pointer-events-none transition-all peer-focus:-top-4 peer-focus:text-luxury-black peer-valid:-top-4">Price (₦)</label>
-                    </div>
-                    <div className="relative group">
-                      <input type="number" name="stock" required min="0" value={formData.stock} onChange={handleInputChange} placeholder=" " className="w-full bg-transparent border-b border-zinc-300 py-3 text-sm focus:outline-none focus:border-luxury-black transition-colors peer" />
-                      <label className="absolute left-0 top-3 text-[10px] uppercase tracking-widest text-zinc-400 pointer-events-none transition-all peer-focus:-top-4 peer-focus:text-luxury-black peer-valid:-top-4">Total Stock</label>
-                    </div>
-                  </div>
-
-                  {availableSizesForCategory.length > 0 && (
-                    <div className="mt-6 p-6 bg-zinc-50 border border-zinc-200">
-                      <p className="text-[10px] uppercase tracking-widest text-zinc-500 mb-4">Select Available Sizes for Vault</p>
-                      <div className="flex flex-wrap gap-2">
-                        {availableSizesForCategory.map(size => (
-                          <button
-                            type="button"
-                            key={size}
-                            onClick={() => handleSizeToggle(size)}
-                            className={`px-4 py-2 text-xs border transition-colors ${
-                              formData.sizes.includes(size) 
-                                ? 'bg-luxury-black text-white border-luxury-black' 
-                                : 'bg-white text-zinc-500 border-zinc-300 hover:border-luxury-black'
-                            }`}
-                          >
-                            {size}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="relative group mt-8">
-                    <input type="file" accept="image/*" onChange={handleFileChange} className="w-full bg-transparent border-b border-zinc-300 py-3 text-sm focus:outline-none focus:border-luxury-black transition-colors file:mr-4 file:py-2 file:px-4 file:rounded-none file:border-0 file:text-xs file:font-semibold file:bg-zinc-100 file:text-zinc-700 hover:file:bg-zinc-200" />
-                    <label className="absolute left-0 -top-3 text-[10px] uppercase tracking-widest text-zinc-400 pointer-events-none transition-all">Product Image</label>
-                    {formData.imageUrl && !imageFile && <p className="text-[10px] text-zinc-500 mt-2">Current image active. Upload a new one to replace it.</p>}
-                  </div>
-
-                  <div className="relative group mt-4">
-                    <textarea name="description" required rows="3" value={formData.description} onChange={handleInputChange} placeholder=" " className="w-full bg-transparent border-b border-zinc-300 py-3 text-sm focus:outline-none focus:border-luxury-black transition-colors peer resize-none"></textarea>
-                    <label className="absolute left-0 top-3 text-[10px] uppercase tracking-widest text-zinc-400 pointer-events-none transition-all peer-focus:-top-6 peer-focus:text-luxury-black peer-valid:-top-6">Editorial Description</label>
-                  </div>
-
-                  {/* THIS IS THE BUTTON YOU COULDN'T REACH! */}
-                  <div className="flex gap-4 pt-6">
-                    <button type="submit" disabled={isSubmitting} className="flex-1 bg-luxury-black text-white py-4 text-xs uppercase tracking-widest hover:bg-luxury-gold transition-colors disabled:bg-zinc-300 flex justify-center items-center">
-                      {isSubmitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : (editingId ? 'Save Changes' : 'Commit to Vault')}
+              {/* Overlay Background */}
+              <motion.div 
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                onClick={() => setIsModalOpen(false)} 
+                className="fixed inset-0 bg-black/60 backdrop-blur-sm" 
+              />
+              
+              {/* Modal Card */}
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="relative transform overflow-hidden bg-luxury-white text-left shadow-2xl transition-all sm:my-8 w-full max-w-2xl z-10"
+              >
+                
+                {/* Header */}
+                <div className="border-b border-zinc-200 px-6 py-6 md:px-8">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-2xl font-editorial text-luxury-black">
+                      {editingId ? 'Edit Archived Piece' : 'Archive New Piece'}
+                    </h3>
+                    <button type="button" onClick={() => setIsModalOpen(false)} className="text-[10px] uppercase tracking-widest text-zinc-400 hover:text-luxury-black transition-colors">
+                      Close [X]
                     </button>
                   </div>
-                </form>
-              </div>
+                </div>
 
-            </motion.div>
+                {/* Form Body */}
+                <div className="px-6 py-6 md:px-8">
+                  <form onSubmit={handleSubmitPiece} className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="relative group">
+                        <input type="text" name="name" required value={formData.name} onChange={handleInputChange} placeholder=" " className="w-full bg-transparent border-b border-zinc-300 py-3 text-sm focus:outline-none focus:border-luxury-black transition-colors peer" />
+                        <label className="absolute left-0 top-3 text-[10px] uppercase tracking-widest text-zinc-400 pointer-events-none transition-all peer-focus:-top-4 peer-focus:text-luxury-black peer-valid:-top-4">Piece Name</label>
+                      </div>
+                      <div className="relative group">
+                        <input type="text" name="designer" value={formData.designer} onChange={handleInputChange} placeholder=" " className="w-full bg-transparent border-b border-zinc-300 py-3 text-sm focus:outline-none focus:border-luxury-black transition-colors peer" />
+                        <label className="absolute left-0 top-3 text-[10px] uppercase tracking-widest text-zinc-400 pointer-events-none transition-all peer-focus:-top-4 peer-focus:text-luxury-black peer-valid:-top-4">Designer / Brand</label>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="relative group">
+                        <select 
+                          name="category" 
+                          required 
+                          value={formData.category} 
+                          onChange={handleInputChange} 
+                          className="w-full bg-transparent border-b border-zinc-300 py-3 text-sm focus:outline-none focus:border-luxury-black transition-colors appearance-none cursor-pointer"
+                        >
+                          <option value="" disabled>Select Category</option>
+                          <option value="Shirts">Shirts</option>
+                          <option value="Trousers">Trousers</option>
+                          <option value="Sneakers">Sneakers</option>
+                          <option value="Sandals">Sandals</option>
+                          <option value="Slippers">Slippers</option>
+                          <option value="Eye Wear">Eye Wear</option>
+                          <option value="Wrist Watches">Wrist Watches</option>
+                          <option value="Purses">Purses</option>
+                          <option value="Bags">Bags</option>
+                        </select>
+                        <label className="absolute left-0 -top-4 text-[10px] uppercase tracking-widest text-luxury-black pointer-events-none transition-all">Category</label>
+                        <div className="absolute right-0 top-3 pointer-events-none text-zinc-400 text-xs">▼</div>
+                      </div>
+
+                      <div className="relative group">
+                        <input type="number" name="price" required min="0" value={formData.price} onChange={handleInputChange} placeholder=" " className="w-full bg-transparent border-b border-zinc-300 py-3 text-sm focus:outline-none focus:border-luxury-black transition-colors peer" />
+                        <label className="absolute left-0 top-3 text-[10px] uppercase tracking-widest text-zinc-400 pointer-events-none transition-all peer-focus:-top-4 peer-focus:text-luxury-black peer-valid:-top-4">Price (₦)</label>
+                      </div>
+                      <div className="relative group">
+                        <input type="number" name="stock" required min="0" value={formData.stock} onChange={handleInputChange} placeholder=" " className="w-full bg-transparent border-b border-zinc-300 py-3 text-sm focus:outline-none focus:border-luxury-black transition-colors peer" />
+                        <label className="absolute left-0 top-3 text-[10px] uppercase tracking-widest text-zinc-400 pointer-events-none transition-all peer-focus:-top-4 peer-focus:text-luxury-black peer-valid:-top-4">Total Stock</label>
+                      </div>
+                    </div>
+
+                    {availableSizesForCategory.length > 0 && (
+                      <div className="mt-6 p-6 bg-zinc-50 border border-zinc-200">
+                        <p className="text-[10px] uppercase tracking-widest text-zinc-500 mb-4">Select Available Sizes for Vault</p>
+                        <div className="flex flex-wrap gap-2">
+                          {availableSizesForCategory.map(size => (
+                            <button
+                              type="button"
+                              key={size}
+                              onClick={() => handleSizeToggle(size)}
+                              className={`px-4 py-2 text-xs border transition-colors ${
+                                formData.sizes.includes(size) 
+                                  ? 'bg-luxury-black text-white border-luxury-black' 
+                                  : 'bg-white text-zinc-500 border-zinc-300 hover:border-luxury-black'
+                              }`}
+                            >
+                              {size}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="relative group mt-8">
+                      <input type="file" accept="image/*" onChange={handleFileChange} className="w-full bg-transparent border-b border-zinc-300 py-3 text-sm focus:outline-none focus:border-luxury-black transition-colors file:mr-4 file:py-2 file:px-4 file:rounded-none file:border-0 file:text-xs file:font-semibold file:bg-zinc-100 file:text-zinc-700 hover:file:bg-zinc-200" />
+                      <label className="absolute left-0 -top-3 text-[10px] uppercase tracking-widest text-zinc-400 pointer-events-none transition-all">Product Image</label>
+                      {formData.imageUrl && !imageFile && <p className="text-[10px] text-zinc-500 mt-2">Current image active. Upload a new one to replace it.</p>}
+                    </div>
+
+                    <div className="relative group mt-4">
+                      <textarea name="description" required rows="3" value={formData.description} onChange={handleInputChange} placeholder=" " className="w-full bg-transparent border-b border-zinc-300 py-3 text-sm focus:outline-none focus:border-luxury-black transition-colors peer resize-none"></textarea>
+                      <label className="absolute left-0 top-3 text-[10px] uppercase tracking-widest text-zinc-400 pointer-events-none transition-all peer-focus:-top-6 peer-focus:text-luxury-black peer-valid:-top-6">Editorial Description</label>
+                    </div>
+
+                    <div className="pt-4 border-t border-zinc-200">
+                      <button type="submit" disabled={isSubmitting} className="w-full bg-luxury-black text-white py-4 text-xs uppercase tracking-widest hover:bg-luxury-gold transition-colors disabled:bg-zinc-300 flex justify-center items-center">
+                        {isSubmitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : (editingId ? 'Save Changes' : 'Commit to Vault')}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+
+              </motion.div>
+            </div>
           </div>
         )}
       </AnimatePresence>
