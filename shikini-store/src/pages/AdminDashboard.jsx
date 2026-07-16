@@ -96,7 +96,6 @@ export default function AdminDashboard() {
     try {
       let finalImageUrl = formData.imageUrl;
 
-      // Cloudinary keeps native fetch because it hits a 3rd party API, not your backend
       if (imageFile) {
         const uploadData = new FormData();
         uploadData.append("file", imageFile);
@@ -114,12 +113,15 @@ export default function AdminDashboard() {
         finalImageUrl = cloudData.secure_url; 
       }
 
-      // STRICT BACKEND CALL (Prevents the silent failure)
       const endpoint = editingId ? `/products/${editingId}` : `/products`;
       const method = editingId ? 'PUT' : 'POST';
 
+      // THE FIX: Explicitly telling the backend we are sending JSON data
       await fetchFromAPI(endpoint, {
         method,
+        headers: {
+          'Content-Type': 'application/json' // <-- THIS WAS MISSING
+        },
         body: JSON.stringify({
           ...formData,
           imageUrl: finalImageUrl, 
@@ -132,7 +134,8 @@ export default function AdminDashboard() {
       window.location.reload(); 
     } catch (error) {
       console.error('Error saving piece:', error);
-      alert('Failed to save to the vault. Please verify your Render API URL is correct.');
+      // Removed the generic alert so it actually tells you WHAT failed if it happens again
+      alert(`Error: ${error.message || 'Failed to save to the vault.'}`);
       setIsSubmitting(false);
     }
   };
