@@ -5,7 +5,7 @@ import { signOut } from 'firebase/auth';
 import { auth } from '../config/firebase'; 
 import { useProducts } from '../hooks/useProducts';
 import { useOrders } from '../hooks/useOrders';
-import { fetchFromAPI } from '../config/api'; // <-- Now using the strict API utility
+import { fetchFromAPI, API_BASE_URL } from '../config/api'; // <-- IMPORTED API_BASE_URL
 
 const getSizesForCategory = (category) => {
   if (!category) return [];
@@ -113,14 +113,15 @@ export default function AdminDashboard() {
         finalImageUrl = cloudData.secure_url; 
       }
 
-      const endpoint = editingId ? `/products/${editingId}` : `/products`;
+      // 🚨 THE FIX: FORCE ABSOLUTE URL TO PREVENT VERCEL INTERCEPTION
+      const endpoint = editingId ? `${API_BASE_URL}/products/${editingId}` : `${API_BASE_URL}/products`;
       const method = editingId ? 'PUT' : 'POST';
 
-      // THE FIX: Explicitly telling the backend we are sending JSON data
-      await fetchFromAPI(endpoint, {
+      const response = await fetch(endpoint, {
         method,
         headers: {
-          'Content-Type': 'application/json' // <-- THIS WAS MISSING
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           ...formData,
@@ -130,12 +131,21 @@ export default function AdminDashboard() {
         })
       });
 
+      // 🚨 ANTI-SILENT-FAILURE CHECK
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("text/html")) {
+        throw new Error("CRITICAL ERROR: Your API URL is missing or incorrect. The request hit Vercel instead of your Render backend.");
+      }
+
+      if (!response.ok) {
+        throw new Error(`Backend rejected the request: ${response.statusText}`);
+      }
+
       setIsModalOpen(false);
       window.location.reload(); 
     } catch (error) {
       console.error('Error saving piece:', error);
-      // Removed the generic alert so it actually tells you WHAT failed if it happens again
-      alert(`Error: ${error.message || 'Failed to save to the vault.'}`);
+      alert(`Error: ${error.message}`);
       setIsSubmitting(false);
     }
   };
@@ -153,7 +163,6 @@ export default function AdminDashboard() {
   };
 
   const availableSizesForCategory = getSizesForCategory(formData.category);
-
   const fadeUp = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.6 } } };
 
   return (
