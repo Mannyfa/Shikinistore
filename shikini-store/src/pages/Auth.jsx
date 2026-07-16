@@ -4,6 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../config/firebase';
 
+// CHANGE THIS TO WHATEVER EMAIL YOU WANT TO BE THE ADMIN
+const ADMIN_EMAIL = 'test@shikini.com'; 
+
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({ email: '', password: '' });
@@ -23,20 +26,18 @@ export default function Auth() {
 
     try {
       if (isLogin) {
-        // Log in existing user
         const userCredential = await signInWithEmailAndPassword(auth, formData.email, formData.password);
         
-        // --- SMART ROUTING LOGIC ---
-        if (userCredential.user.email === 'admin@shikini.com') {
-          navigate('/admin'); // Send admin directly to terminal
+        // Smart Routing: Checks against the variable above
+        if (userCredential.user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+          navigate('/admin'); 
         } else {
-          navigate('/archives'); // Send customer to vault
+          navigate('/archives'); 
         }
       } else {
-        // Register new user
         const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
         
-        if (userCredential.user.email === 'admin@shikini.com') {
+        if (userCredential.user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
           navigate('/admin');
         } else {
           navigate('/profile'); 

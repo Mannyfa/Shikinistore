@@ -4,12 +4,14 @@ import { useCartStore } from '../../store/cartStore';
 import { useAuth } from '../../hooks/useAuth'; 
 import SearchOverlay from '../../features/search/SearchOverlay'; 
 
+// MUST MATCH THE EMAIL IN AUTH.JSX
+const ADMIN_EMAIL = 'test@shikini.com';
+
 export default function Header() {
   const openCart = useCartStore((state) => state.openCart);
   const getCartCount = useCartStore((state) => state.getCartCount);
   const [isScrolled, setIsScrolled] = useState(false);
   const { currentUser } = useAuth(); 
-  
   const [isSearchOpen, setIsSearchOpen] = useState(false); 
 
   useEffect(() => {
@@ -20,7 +22,8 @@ export default function Header() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const isAdmin = currentUser?.email === 'admin@shikini.com';
+  // Smart routing for the header button
+  const isAdmin = currentUser?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
   const accountRoute = isAdmin ? '/admin' : '/profile';
 
   return (
@@ -46,11 +49,7 @@ export default function Header() {
             <Link to="/auth" className="hover:text-luxury-black transition-colors hidden sm:block">Sign In</Link>
           )}
 
-          {/* <-- 3. Wire up the button to open the Search Overlay */}
-          <button 
-            onClick={() => setIsSearchOpen(true)}
-            className="hover:text-luxury-black transition-colors hidden sm:block"
-          >
+          <button onClick={() => setIsSearchOpen(true)} className="hover:text-luxury-black transition-colors hidden sm:block">
             Search
           </button>
           
@@ -60,7 +59,6 @@ export default function Header() {
         </nav>
       </header>
 
-      {/* <-- 4. Render the Search Component */}
       <SearchOverlay isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
     </>
   );

@@ -5,7 +5,7 @@ import { signOut } from 'firebase/auth';
 import { auth } from '../config/firebase'; 
 import { useProducts } from '../hooks/useProducts';
 import { useOrders } from '../hooks/useOrders';
-import { API_BASE_URL } from '../config/api';
+import { fetchFromAPI } from '../config/api'; // <-- Now using the strict API utility
 
 const getSizesForCategory = (category) => {
   if (!category) return [];
@@ -96,6 +96,7 @@ export default function AdminDashboard() {
     try {
       let finalImageUrl = formData.imageUrl;
 
+      // Cloudinary keeps native fetch because it hits a 3rd party API, not your backend
       if (imageFile) {
         const uploadData = new FormData();
         uploadData.append("file", imageFile);
@@ -113,12 +114,12 @@ export default function AdminDashboard() {
         finalImageUrl = cloudData.secure_url; 
       }
 
-      const url = editingId ? `${API_BASE_URL}/products/${editingId}` : `${API_BASE_URL}/products`;
+      // STRICT BACKEND CALL (Prevents the silent failure)
+      const endpoint = editingId ? `/products/${editingId}` : `/products`;
       const method = editingId ? 'PUT' : 'POST';
 
-      const response = await fetch(url, {
+      await fetchFromAPI(endpoint, {
         method,
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
           imageUrl: finalImageUrl, 
@@ -127,13 +128,11 @@ export default function AdminDashboard() {
         })
       });
 
-      if (!response.ok) throw new Error('Failed to update archives');
-
       setIsModalOpen(false);
       window.location.reload(); 
     } catch (error) {
       console.error('Error saving piece:', error);
-      alert('Failed to save to the vault. Please try again.');
+      alert('Failed to save to the vault. Please verify your Render API URL is correct.');
       setIsSubmitting(false);
     }
   };
@@ -142,8 +141,7 @@ export default function AdminDashboard() {
     if (!window.confirm(`Are you sure you want to permanently delete "${name}" from the archives?`)) return;
 
     try {
-      const response = await fetch(`${API_BASE_URL}/products/${id}`, { method: 'DELETE' });
-      if (!response.ok) throw new Error('Failed to delete');
+      await fetchFromAPI(`/products/${id}`, { method: 'DELETE' });
       window.location.reload(); 
     } catch (error) {
       console.error('Error deleting piece:', error);
@@ -172,7 +170,7 @@ export default function AdminDashboard() {
           </nav>
         </div>
         <div className="p-8 border-t border-zinc-900">
-          <p className="text-xs text-zinc-500 mb-4">admin@shikini.com</p>
+          <p className="text-xs text-zinc-500 mb-4">{auth.currentUser?.email}</p>
           <button onClick={handleLogout} className="text-xs uppercase tracking-widest text-red-400 hover:text-red-300 transition-colors">Terminate Session</button>
         </div>
       </div>
@@ -313,26 +311,19 @@ export default function AdminDashboard() {
         )}
       </div>
 
-      {/* --- BULLETPROOF SCROLLABLE MODAL --- */}
       <AnimatePresence>
         {isModalOpen && (
           <div className="fixed inset-0 z-[100] overflow-y-auto">
             <div className="flex min-h-screen items-center justify-center p-4 py-12 text-center sm:p-0">
-              
-              {/* Overlay Background */}
               <motion.div 
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                 onClick={() => setIsModalOpen(false)} 
                 className="fixed inset-0 bg-black/60 backdrop-blur-sm" 
               />
-              
-              {/* Modal Card */}
               <motion.div 
                 initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
                 className="relative transform overflow-hidden bg-luxury-white text-left shadow-2xl transition-all sm:my-8 w-full max-w-2xl z-10"
               >
-                
-                {/* Header */}
                 <div className="border-b border-zinc-200 px-6 py-6 md:px-8">
                   <div className="flex justify-between items-center">
                     <h3 className="text-2xl font-editorial text-luxury-black">
@@ -344,7 +335,6 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                {/* Form Body */}
                 <div className="px-6 py-6 md:px-8">
                   <form onSubmit={handleSubmitPiece} className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
