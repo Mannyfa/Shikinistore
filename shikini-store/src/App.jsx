@@ -17,7 +17,6 @@ import AuthPage from './pages/Auth';
 import Profile from './pages/Profile';
 
 // --- THE CINEMATIC WRAPPER ---
-// This adds a subtle blur and fade to every page as it enters and leaves.
 const AnimatedPage = ({ children }) => (
   <motion.div
     initial={{ opacity: 0, filter: 'blur(8px)', y: 15 }}
@@ -31,19 +30,20 @@ const AnimatedPage = ({ children }) => (
 );
 
 // --- INNER APP LOGIC ---
-// We must extract this component because useLocation() only works INSIDE a <Router>
 const AppContent = () => {
   const location = useLocation();
+  
+  // We check if the current page is the Admin Dashboard
+  const isAdminRoute = location.pathname.startsWith('/admin');
 
   return (
     <div className="min-h-screen bg-luxury-white text-luxury-black font-sans antialiased selection:bg-luxury-gold selection:text-white relative">
       
-      {/* Header & Cart stay completely static outside the animation, 
-          so they don't flash or reload when pages change. */}
-      <Header />
+      {/* Hide the public Header if we are in the Admin Terminal */}
+      {!isAdminRoute && <Header />}
+      
       <CartDrawer />
       
-      {/* mode="wait" ensures the old page fully fades out BEFORE the new page fades in */}
       <AnimatePresence mode="wait">
         <Routes location={location} key={location.pathname}>
           
@@ -62,7 +62,7 @@ const AppContent = () => {
           <Route path="/auth" element={<AnimatedPage><AuthPage /></AnimatedPage>} />
           <Route path="/profile" element={<AnimatedPage><Profile /></AnimatedPage>} />
           
-          {/* Admin bypasses the cinematic transition for raw performance */}
+          {/* Admin Terminal */}
           <Route path="/admin" element={<AdminDashboard />} />
 
         </Routes>
