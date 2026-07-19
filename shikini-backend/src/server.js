@@ -1,10 +1,9 @@
 const express = require('express');
 const cors = require('cors');
-const { db } = require('./config/firebase'); // Assumes your Firebase is configured here
+const { db } = require('./config/firebase');
 
 const app = express();
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 
@@ -12,7 +11,7 @@ app.use(express.json());
 // 📦 VAULT INVENTORY ROUTES (PRODUCTS)
 // ==========================================
 
-// Get all pieces
+// 1. Get ALL pieces (For Archives & Admin)
 app.get('/api/products', async (req, res) => {
   try {
     const snapshot = await db.collection('products').get();
@@ -24,7 +23,25 @@ app.get('/api/products', async (req, res) => {
   }
 });
 
-// Add a new piece
+// 2. Get ONE piece by ID (THE MISSING ROUTE FOR PRODUCT DETAILS!)
+app.get('/api/products/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const docRef = db.collection('products').doc(id);
+    const doc = await docRef.get();
+    
+    if (!doc.exists) {
+      return res.status(404).json({ message: "Piece not found in the vault." });
+    }
+    
+    res.status(200).json({ id: doc.id, ...doc.data() });
+  } catch (error) {
+    console.error("Error fetching single product:", error);
+    res.status(500).json({ message: "Failed to retrieve piece details." });
+  }
+});
+
+// 3. Add a new piece
 app.post('/api/products', async (req, res) => {
   try {
     const newProduct = req.body;
@@ -38,7 +55,7 @@ app.post('/api/products', async (req, res) => {
   }
 });
 
-// Update a piece
+// 4. Update a piece
 app.put('/api/products/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -52,7 +69,7 @@ app.put('/api/products/:id', async (req, res) => {
   }
 });
 
-// Delete a piece
+// 5. Delete a piece
 app.delete('/api/products/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -65,10 +82,10 @@ app.delete('/api/products/:id', async (req, res) => {
 });
 
 // ==========================================
-// 🧾 ORDER MANAGEMENT ROUTES (NEW)
+// 🧾 ORDER MANAGEMENT ROUTES 
 // ==========================================
 
-// Get all orders (For Admin Dashboard)
+// Get all orders 
 app.get('/api/orders', async (req, res) => {
   try {
     const snapshot = await db.collection('orders').get();
@@ -80,15 +97,13 @@ app.get('/api/orders', async (req, res) => {
   }
 });
 
-// Create a new order (Called from Checkout Page)
+// Create a new order 
 app.post('/api/orders', async (req, res) => {
   try {
     const orderData = req.body;
     orderData.createdAt = new Date().toISOString();
     
     const docRef = await db.collection('orders').add(orderData);
-    
-    // We send back the order ID so the frontend can use it in the EmailJS receipt!
     res.status(201).json({ id: docRef.id, ...orderData });
   } catch (error) {
     console.error("Error creating order:", error);
@@ -96,7 +111,7 @@ app.post('/api/orders', async (req, res) => {
   }
 });
 
-// Update an order's status (Admin changing to "Shipped", etc.)
+// Update order status
 app.put('/api/orders/:id', async (req, res) => {
   try {
     const { id } = req.params;
