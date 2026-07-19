@@ -5,7 +5,7 @@ import { signOut } from 'firebase/auth';
 import { auth } from '../config/firebase'; 
 import { useProducts } from '../hooks/useProducts';
 import { useOrders } from '../hooks/useOrders';
-import { fetchFromAPI, API_BASE_URL } from '../config/api'; // <-- IMPORTED API_BASE_URL
+import { fetchFromAPI, API_BASE_URL } from '../config/api';
 
 const getSizesForCategory = (category) => {
   if (!category) return [];
@@ -23,11 +23,16 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('inventory');
   
+  // Modal & Form State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [imageFile, setImageFile] = useState(null); 
   
+  // Custom Popups State (Replacing native browser alerts)
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null, name: '' });
+  const [appAlert, setAppAlert] = useState({ isOpen: false, message: '' });
+
   const emptyForm = { name: '', designer: '', category: '', price: '', stock: '', imageUrl: '', description: '', sizes: [] };
   const [formData, setFormData] = useState(emptyForm);
 
@@ -113,7 +118,6 @@ export default function AdminDashboard() {
         finalImageUrl = cloudData.secure_url; 
       }
 
-      // 🚨 THE FIX: FORCE ABSOLUTE URL TO PREVENT VERCEL INTERCEPTION
       const endpoint = editingId ? `${API_BASE_URL}/products/${editingId}` : `${API_BASE_URL}/products`;
       const method = editingId ? 'PUT' : 'POST';
 
@@ -131,10 +135,9 @@ export default function AdminDashboard() {
         })
       });
 
-      // 🚨 ANTI-SILENT-FAILURE CHECK
       const contentType = response.headers.get("content-type");
       if (contentType && contentType.includes("text/html")) {
-        throw new Error("CRITICAL ERROR: Your API URL is missing or incorrect. The request hit Vercel instead of your Render backend.");
+        throw new Error("API URL is missing or incorrect. The request hit Vercel instead of your Render backend.");
       }
 
       if (!response.ok) {
@@ -145,20 +148,25 @@ export default function AdminDashboard() {
       window.location.reload(); 
     } catch (error) {
       console.error('Error saving piece:', error);
-      alert(`Error: ${error.message}`);
+      setAppAlert({ isOpen: true, message: `Error: ${error.message}` });
       setIsSubmitting(false);
     }
   };
 
-  const handleDelete = async (id, name) => {
-    if (!window.confirm(`Are you sure you want to permanently delete "${name}" from the archives?`)) return;
+  // --- NEW CUSTOM DELETION LOGIC ---
+  const triggerDelete = (id, name) => {
+    setDeleteModal({ isOpen: true, id, name });
+  };
 
+  const executeDelete = async () => {
+    if (!deleteModal.id) return;
     try {
-      await fetchFromAPI(`/products/${id}`, { method: 'DELETE' });
+      await fetchFromAPI(`/products/${deleteModal.id}`, { method: 'DELETE' });
       window.location.reload(); 
     } catch (error) {
       console.error('Error deleting piece:', error);
-      alert('Failed to delete item from the vault.');
+      setAppAlert({ isOpen: true, message: 'Failed to delete item from the vault.' });
+      setDeleteModal({ isOpen: false, id: null, name: '' });
     }
   };
 
@@ -261,7 +269,10 @@ export default function AdminDashboard() {
                       </td>
                       <td className="p-4 text-right space-x-4">
                         <button onClick={() => openEditModal(item)} className="text-xs uppercase tracking-widest text-zinc-400 hover:text-luxury-black transition-colors">Edit</button>
-                        <button onClick={() => handleDelete(item.id, item.name)} className="text-xs uppercase tracking-widest text-red-300 hover:text-red-500 transition-colors">Delete</button>
+                        
+                        {/* THE NEW TRIGGER BUTTON */}
+                        <button onClick={() => triggerDelete(item.id, item.name)} className="text-xs uppercase tracking-widest text-red-400 hover:text-red-600 transition-colors">Delete</button>
+                      
                       </td>
                     </tr>
                   ))}
@@ -323,6 +334,7 @@ export default function AdminDashboard() {
         )}
       </div>
 
+      {/* --- ADD/EDIT ITEM MODAL --- */}
       <AnimatePresence>
         {isModalOpen && (
           <div className="fixed inset-0 z-[100] overflow-y-auto">
@@ -440,6 +452,70 @@ export default function AdminDashboard() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* --- CUSTOM DELETE CONFIRMATION MODAL --- */}
+      <AnimatePresence>
+        {deleteModal.isOpen && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setDeleteModal({ isOpen: false, id: null, name: '' })} 
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm" 
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-md bg-luxury-white shadow-2xl p-8 z-10 text-center"
+            >
+              <h3 className="text-2xl font-editorial text-luxury-black mb-4">Confirm Deletion</h3>
+              <p className="text-sm text-zinc-600 mb-8 font-serif italic">
+                Are you sure you want to permanently remove <span className="font-sans font-bold text-luxury-black not-italic">{deleteModal.name}</span> from the archives? This action cannot be undone.
+              </p>
+              
+              <div className="flex gap-4">
+                <button 
+                  onClick={() => setDeleteModal({ isOpen: false, id: null, name: '' })}
+                  className="flex-1 py-3 border border-zinc-300 text-luxury-black text-xs uppercase tracking-widest hover:bg-zinc-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={executeDelete}
+                  className="flex-1 py-3 bg-red-600 text-white text-xs uppercase tracking-widest hover:bg-red-700 transition-colors"
+                >
+                  Delete Piece
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* --- CUSTOM APP ALERT MODAL (Replaces window.alert) --- */}
+      <AnimatePresence>
+        {appAlert.isOpen && (
+          <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm" 
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-sm bg-luxury-white shadow-2xl p-8 z-10 text-center border-t-4 border-luxury-black"
+            >
+              <h3 className="text-lg font-editorial text-luxury-black mb-2 uppercase tracking-widest">System Notification</h3>
+              <p className="text-xs text-zinc-600 mb-8">{appAlert.message}</p>
+              
+              <button 
+                onClick={() => setAppAlert({ isOpen: false, message: '' })}
+                className="w-full py-3 bg-luxury-black text-white text-xs uppercase tracking-widest hover:bg-luxury-gold transition-colors"
+              >
+                Acknowledge
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 }
