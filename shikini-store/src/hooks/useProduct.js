@@ -1,31 +1,31 @@
 import { useState, useEffect } from 'react';
 import { fetchFromAPI } from '../config/api';
 
-export const useProduct = (id) => {
+export function useProduct(id) {
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const getSingleProduct = async () => {
-      if (!id) return;
-      
+    if (!id) return;
+
+    const fetchProduct = async () => {
       try {
         setLoading(true);
-        // Calls GET http://localhost:5000/api/products/:id
-        const response = await fetchFromAPI(`/products/${id}`);
-        setProduct(response.data);
-        setError(null);
+        // Uses the bulletproof API utility to grab the single item from your new backend route
+        const data = await fetchFromAPI(`/products/${id}`);
+        setProduct(data);
       } catch (err) {
-        console.error('Error loading product details:', err);
-        setError(err.message || 'Failed to retrieve this item from the vault.');
+        console.error("Failed to fetch individual product:", err);
+        setError(err.message);
+        setProduct(null);
       } finally {
         setLoading(false);
       }
     };
 
-    getSingleProduct();
+    fetchProduct();
   }, [id]);
 
   return { product, loading, error };
-};
+}
